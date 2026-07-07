@@ -1,0 +1,47 @@
+# ==========================================
+# 🔑 Security & Environment Secret Keys
+# ==========================================
+.env
+.env.local
+.env.*.local
+
+# ==========================================
+# 📦 Python Compiler & Environment Bloat
+# ==========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# 📊 High-Frequency Dataset Constraints
+# ==========================================
+# This protects your token budget by ensuring massive 
+# data dumps aren't tracked or bloated on the remote server.
+data/can_*.csv
+data/dtc_*.csv
+uploads/*
+!uploads/.gitkeep
+
+# ==========================================
+# 🧠 Local Vector Database Binary Tables
+# ==========================================
+# ChromaDB stores local SQLite binaries here. Keep them 
+# local so different machines don't corrupt the database indices.
+memory/chroma_db/
+*.db
+*.sqlite3
+
+# ==========================================
+# 🖥️ Editor & IDE Metadata (VS Code / Mac)
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
