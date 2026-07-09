@@ -29,7 +29,9 @@ st.markdown("""
 
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from agents.rootcause_agent import run_simple_diagnosis
+from agents.rootcause_agent import run_rootcause_analysis
+from utils.guardrail import DiagnosticIncidentParser
+from utils import *
 
 # ==========================================
 # 🎛️ SIDEBAR ENGINE & SCENARIO CONTROLLER
@@ -121,7 +123,6 @@ def robust_float_convert(val):
         return float(val_str)
     except ValueError:
         return 0.0
-
 if all_files_present:
     try:
         raw_can_df = pd.read_csv(uploaded_can)
@@ -134,39 +135,93 @@ if all_files_present:
         
         telemetry_df = pd.DataFrame()
         
-        # 1. Map Time Axis safely
-        if 'time' in col_mapping:
-            telemetry_df['Time'] = raw_can_df[col_mapping['time']].apply(robust_float_convert)
-        else:
-            telemetry_df['Time'] = np.linspace(0, 10, len(raw_can_df))
+        # Check if the CSV is already pivoted or follows the long schema format
+        if 'signal_name' in col_mapping and 'physical_value' in col_mapping:
+            # Pivot the long format data into standard timeline columns
+            ts_col = col_mapping.get('timestamp', col_mapping.get('time', raw_can_df.columns[0]))
             
-        # 2. Map Motor Current with full Hex extraction logic
-        if 'motor_current_amps' in col_mapping:
-            telemetry_df['Motor_Current_Amps'] = raw_can_df[col_mapping['motor_current_amps']].apply(robust_float_convert)
-        elif len(raw_can_df.columns) > 1:
-            telemetry_df['Motor_Current_Amps'] = raw_can_df.iloc[:, 1].apply(robust_float_convert)
-        else:
-            telemetry_df['Motor_Current_Amps'] = 5.0
-
-        # 3. Map Steering Angle safely
-        if 'steering_angle_deg' in col_mapping:
-            telemetry_df['Steering_Angle_Deg'] = raw_can_df[col_mapping['steering_angle_deg']].apply(robust_float_convert)
-        elif len(raw_can_df.columns) > 2:
-            telemetry_df['Steering_Angle_Deg'] = raw_can_df.iloc[:, 2].apply(robust_float_convert)
-        else:
-            telemetry_df['Steering_Angle_Deg'] = 0.0
-
-        # 4. Map Inverter Temperature safely
-        if 'inverter_temp_c' in col_mapping:
-            telemetry_df['Inverter_Temp_C'] = raw_can_df[col_mapping['inverter_temp_c']].apply(robust_float_convert)
-        elif len(raw_can_df.columns) > 3:
-            telemetry_df['Inverter_Temp_C'] = raw_can_df.iloc[:, 3].apply(robust_float_convert)
-        else:
-            telemetry_df['Inverter_Temp_C'] = 45.0
+            pivot_df = raw_can_df.pivot_table(
+                index=ts_col, 
+                columns=col_mapping['signal_name'], 
+                values=col_mapping['physical_value'], 
+                aggfunc='first'
+            ).sort_index().reset_index()
             
+            # Re-map our columns list based on the pivoted DataFrame
+            pivot_df.columns = [str(col).strip() for col in pivot_df.columns]
+            p_mapping = {col.lower(): col for col in pivot_df.columns}
+            
+            # 1. Map Time Axis safely
+            telemetry_df['Time'] = pivot_df.iloc[:, 0].apply(robust_float_convert)
+            
+            # 2. Map Motor Current
+            if 'motor_current' in p_mapping:
+                telemetry_df['Motor_Current_Amps'] = pivot_df[p_mapping['motor_current']].apply(robust_float_convert)
+            elif 'motor_current_amps' in p_mapping:
+                telemetry_df['Motor_Current_Amps'] = pivot_df[p_mapping['motor_current_amps']].apply(robust_float_convert)
+            else:
+                telemetry_df['Motor_Current_Amps'] = 5.0
+
+            # 3. Map Steering Angle
+            if 'steering_angle' in p_mapping:
+                telemetry_df['Steering_Angle_Deg'] = pivot_df[p_mapping['steering_angle']].apply(robust_float_convert)
+            elif 'steering_angle_deg' in p_mapping:
+                telemetry_df['Steering_Angle_Deg'] = pivot_df[p_mapping['steering_angle_deg']].apply(robust_float_convert)
+            else:
+                telemetry_df['Steering_Angle_Deg'] = 0.0
+
+            # 4. Map Inverter Temperature
+            if 'inverter_temp' in p_mapping:
+                telemetry_df['Inverter_Temp_C'] = pivot_df[p_mapping['inverter_temp']].apply(robust_float_convert)
+            elif 'inverter_temp_c' in p_mapping:
+                telemetry_df['Inverter_Temp_C'] = pivot_df[p_mapping['inverter_temp_c']].apply(robust_float_convert)
+            else:
+                telemetry_df['Inverter_Temp_C'] = 45.0
+                
+        else:
+            # Fallback legacy parsing structure if file isn't long format
+            # 1. Map Time Axis safely
+            if 'time' in col_mapping:
+                telemetry_df['Time'] = raw_can_df[col_mapping['time']].apply(robust_float_convert)
+            elif 'timestamp' in col_mapping:
+                telemetry_df['Time'] = raw_can_df[col_mapping['timestamp']].apply(robust_float_convert)
+            else:
+                telemetry_df['Time'] = np.linspace(0, 10, len(raw_can_df))
+                
+            # 2. Map Motor Current
+            if 'motor_current' in col_mapping:
+                telemetry_df['Motor_Current_Amps'] = raw_can_df[col_mapping['motor_current']].apply(robust_float_convert)
+            elif 'motor_current_amps' in col_mapping:
+                telemetry_df['Motor_Current_Amps'] = raw_can_df[col_mapping['motor_current_amps']].apply(robust_float_convert)
+            elif len(raw_can_df.columns) > 1:
+                telemetry_df['Motor_Current_Amps'] = raw_can_df.iloc[:, 1].apply(robust_float_convert)
+            else:
+                telemetry_df['Motor_Current_Amps'] = 5.0
+
+            # 3. Map Steering Angle
+            if 'steering_angle' in col_mapping:
+                telemetry_df['Steering_Angle_Deg'] = raw_can_df[col_mapping['steering_angle']].apply(robust_float_convert)
+            elif 'steering_angle_deg' in col_mapping:
+                telemetry_df['Steering_Angle_Deg'] = raw_can_df[col_mapping['steering_angle_deg']].apply(robust_float_convert)
+            elif len(raw_can_df.columns) > 2:
+                telemetry_df['Steering_Angle_Deg'] = raw_can_df.iloc[:, 2].apply(robust_float_convert)
+            else:
+                telemetry_df['Steering_Angle_Deg'] = 0.0
+
+            # 4. Map Inverter Temperature
+            if 'inverter_temp' in col_mapping:
+                telemetry_df['Inverter_Temp_C'] = raw_can_df[col_mapping['inverter_temp']].apply(robust_float_convert)
+            elif 'inverter_temp_c' in col_mapping:
+                telemetry_df['Inverter_Temp_C'] = raw_can_df[col_mapping['inverter_temp_c']].apply(robust_float_convert)
+            elif len(raw_can_df.columns) > 3:
+                telemetry_df['Inverter_Temp_C'] = raw_can_df.iloc[:, 3].apply(robust_float_convert)
+            else:
+                telemetry_df['Inverter_Temp_C'] = 45.0
+                
     except Exception as parse_error:
         parse_error_triggered = True
         all_files_present = False
+
 
 # Fallback block if files are missing, non-compliant, or broken
 if telemetry_df is None:
@@ -205,38 +260,46 @@ active_backend = "GPT-4o Mini (OpenAI)" if (has_openai and not has_gemini) else 
 kpi3.metric(label="🔌 Active Model Gateway", value=active_backend)
 kpi4.metric(label="⏱️ Frame Ingestion Rate", value=f"{len(telemetry_df)} Hz")
 
-st.markdown("---")
 
-# Row 2: Graphing telemetry profiles (Multi-Axis Balanced Line Chart Layout)
+# Row 2: Graphing telemetry profiles (3-Row Vertically Stacked Subplot Layout)
 st.subheader("📈 Synchronized Multi-Channel Waveform Telemetry")
 
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-# 🔴 1. Motor Current Trace (Primary Axis)
-fig.add_trace(
-    go.Scatter(
-        x=telemetry_df["Time"], 
-        y=telemetry_df["Motor_Current_Amps"], 
-        name="Motor Current (Amps)", 
-        mode='lines',
-        line=dict(color="#FF4B4B", width=2.5)
-    ),
-    secondary_y=False
+# Configure 3 stacked vertical rows sharing the same timeline X-axis
+fig = make_subplots(
+    rows=3, 
+    cols=1, 
+    shared_xaxes=True, 
+    vertical_spacing=0.08,
+    subplot_titles=("Motor Current Profile", "Steering Angle Profile", "Inverter Temperature Profile")
 )
 
-# 🔵 2. Steering Angle Trace (Secondary Axis)
-fig.add_trace(
-    go.Scatter(
-        x=telemetry_df["Time"], 
-        y=telemetry_df["Steering_Angle_Deg"], 
-        name="Steering Angle (Deg)", 
-        mode='lines',
-        line=dict(color="#0068C9", width=2)
-    ),
-    secondary_y=True
-)
+# 🔴 Subplot 1: Motor Current Trace (Row 1)
+if "Motor_Current_Amps" in telemetry_df.columns:
+    fig.add_trace(
+        go.Scatter(
+            x=telemetry_df["Time"], 
+            y=telemetry_df["Motor_Current_Amps"], 
+            name="Motor Current (Amps)", 
+            mode='lines',
+            line=dict(color="#FF4B4B", width=2.5)
+        ),
+        row=1, col=1
+    )
 
-# 🌐 3. Inverter Temp Trace (Primary Axis)
+# 🔵 Subplot 2: Steering Angle Trace (Row 2)
+if "Steering_Angle_Deg" in telemetry_df.columns:
+    fig.add_trace(
+        go.Scatter(
+            x=telemetry_df["Time"], 
+            y=telemetry_df["Steering_Angle_Deg"], 
+            name="Steering Angle (Deg)", 
+            mode='lines',
+            line=dict(color="#0068C9", width=2)
+        ),
+        row=2, col=1
+    )
+
+# 🌐 Subplot 3: Inverter Temp Trace (Row 3)
 if "Inverter_Temp_C" in telemetry_df.columns:
     fig.add_trace(
         go.Scatter(
@@ -246,18 +309,29 @@ if "Inverter_Temp_C" in telemetry_df.columns:
             mode='lines',
             line=dict(color="#29B5E8", width=2, dash='dot')
         ),
-        secondary_y=False
+        row=3, col=1
     )
 
+# Master Layout configuration
 fig.update_layout(
-    height=360, 
-    margin=dict(l=10, r=10, t=10, b=10), 
-    legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
-    plot_bgcolor="#F8F9FA",
-    xaxis=dict(title="Time (Seconds)", showgrid=True, gridcolor="#EAEAEA"),
-    yaxis=dict(title="Current (Amps) / Temp (°C)", showgrid=True, gridcolor="#EAEAEA"),
-    yaxis2=dict(title="Steering Angle (Degrees)", overlaying="y", side="right")
+    height=650,  # Increased height to comfortably present 3 individual panels
+    margin=dict(l=10, r=10, t=30, b=10), 
+    legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1),
+    plot_bgcolor="#F8F9FA"
 )
+
+# Apply axes labels and standard formatting grids to the subplots cleanly
+fig.update_xaxes(showgrid=True, gridcolor="#EAEAEA")
+fig.update_yaxes(showgrid=True, gridcolor="#EAEAEA")
+
+# Set distinct unique targets for individual Y axis markers
+fig.update_yaxes(title_text="Current (Amps)", row=1, col=1)
+fig.update_yaxes(title_text="Angle (Deg)", row=2, col=1)
+fig.update_yaxes(title_text="Temp (°C)", row=3, col=1)
+
+# Only label the bottom x-axis to keep visual data clean
+fig.update_xaxes(title_text="Time (Seconds)", row=3, col=1)
+
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
@@ -300,11 +374,17 @@ if trigger_btn:
             - Max Inverter Thermal Reading: {max_temp:.2f} °C
             - Raw Sensor Record Dimensions: {len(telemetry_df)} frames
             """
-            
+
+            config_full_path = os.path.abspath(os.path.join("config", uploaded_dtc_file.name))
+            uploaded_can_full_path = os.path.abspath(os.path.join("data/sample data/sample CAN logs", uploaded_can.name))
+            uploaded_ecu_full_path = os.path.abspath(os.path.join("data/sample data/sample Events logs", uploaded_ecu.name))
+            incident_parser = DiagnosticIncidentParser(uploaded_can_full_path, uploaded_ecu_full_path, config_full_path)
+
+            extracted_dtc_code = incident_parser.get_active_dtc_meaning()
+
             # Fire our sequential multi-agent orchestration chain
-            agent_response_dict = run_simple_diagnosis(
+            agent_response_dict = run_rootcause_analysis(
                 fault_code=extracted_dtc_code,
-                metric_telemetry=telemetry_string_payload
             )
             
             st.success("🤖 Framework Inference Cycle Successfully Concluded!")
