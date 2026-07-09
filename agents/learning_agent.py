@@ -17,7 +17,18 @@ def run_knowledge_caching(pipeline_summary: str) -> str:
     return ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=user_payload,
-        max_tokens=100
+        max_tokens=1000
     )
 
+if __name__ == "__main__":
+    # 1. Create a fake pipeline summary to mimic real data
+    mock_summary = "Epoch 10/10 - loss: 0.234 - val_loss: 0.251 - Staging: Success"
     
+    print("Testing learning_agent...")
+    
+    # 2. Call the function and catch the string response
+    ai_response = run_knowledge_caching(mock_summary)
+    
+    # 3. Print the actual output to the terminal
+    print("\n--- LLM Output Response ---")
+    print(ai_response)
