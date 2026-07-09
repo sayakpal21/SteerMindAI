@@ -1,4 +1,2 @@
 google
 streamlit
-plotly
-dotenv
