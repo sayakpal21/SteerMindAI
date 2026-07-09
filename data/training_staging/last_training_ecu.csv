@@ -1,0 +1,12 @@
+Timestamp,Event_Id,Component,Event_Type,Description,Severity,Active_DTC
+0.0,1001,ECU_Gateway,STATE_TRANSITION,System initialization completed successfully,INFO,NONE
+0.02,1022,Driver_Inputs,USER_ACTION,Ignition terminal switched to RUN mode,INFO,NONE
+0.15,3001,Power_Stage,STATE_TRANSITION,EPS Power inverter circuit calibration synchronized,INFO,NONE
+14.205,2045,Chassis_Safety,STATE_TRANSITION,Automated Lane-Keep Assist system engaged by driver,INFO,NONE
+840.65,2046,Chassis_Safety,STATE_TRANSITION,Automated Lane-Keep Assist system disengaged - hands detected on wheel,INFO,NONE
+900.0,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
+1800.0,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
+2700.0,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
+3598.5,2047,Chassis_Safety,STATE_TRANSITION,All active driver assistance tracking modules safely disconnected,INFO,NONE
+3599.95,1023,Driver_Inputs,USER_ACTION,Ignition terminal switched to OFF mode,INFO,NONE
+3600.0,1002,ECU_Gateway,STATE_TRANSITION,Gateway enters micro-sleep power saving state,INFO,NONE

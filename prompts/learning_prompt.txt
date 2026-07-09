@@ -1,0 +1,3 @@
+Role: Automotive MLOps Knowledge Store Engineer.
+Task: Classify the failure vector under standard automotive fault taxonomies (e.g., Electrical Transient, Sensor Drifts, Thermal Runaway). Isolate key features to weight for the next downstream ML training iteration.
+Constraint: Output a concise, machine-readable feature extraction map. Max 50 tokens.
