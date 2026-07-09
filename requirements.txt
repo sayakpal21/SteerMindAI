@@ -1,2 +1,4 @@
 google
-streamlit
+streamlit 
+plotly
+dotenv
