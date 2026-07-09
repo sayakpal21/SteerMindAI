@@ -26,6 +26,7 @@ TYPE_STATE = "STATE_TRANSITION"
 TYPE_USER  = "USER_ACTION"
 TYPE_HEALTH = "HEARTBEAT"
 
+'''
 def generate_healthy_event_log(output_path=DEFAULT_OUTPUT_PATH):
     """
     Generates a discrete, state-based event log file representing 
@@ -65,6 +66,142 @@ def generate_healthy_event_log(output_path=DEFAULT_OUTPUT_PATH):
 
     print(f"✅ Success! Healthy lifecycle events log saved to: {output_path}")
     print(f"📊 Summary: Compiled {row_count} discrete operational state records.")
+
+'''
+
+def generate_healthy_event_log(
+        output_path=DEFAULT_OUTPUT_PATH,
+        faulty_time=None,
+        active_dtc=None
+):
+    """
+    Generates event logs.
+
+    Columns:
+    Timestamp, Event_Id, Component, Event_Type,
+    Description, Severity, Active_DTC
+
+    If timestamp >= faulty_time:
+        Active_DTC = provided DTC
+    Else:
+        Active_DTC = NONE
+    """
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    print(f"⏳ Generating event lifecycle logs for {TOTAL_DURATION_SEC / 60:.1f} minutes...")
+
+    def get_dtc(timestamp):
+        if faulty_time is not None and active_dtc is not None:
+            if timestamp >= faulty_time:
+                return active_dtc
+        return "NONE"
+
+    with open(output_path, mode='w', newline='') as csv_file:
+
+        writer = csv.writer(csv_file)
+
+        writer.writerow([
+            "Timestamp",
+            "Event_Id",
+            "Component",
+            "Event_Type",
+            "Description",
+            "Severity",
+            "Active_DTC"
+        ])
+
+        events = [
+            (0.000, "1001", COMP_GATEWAY, TYPE_STATE,
+             "System initialization completed successfully",
+             SEV_INFO),
+
+            (0.020, "1022", COMP_DRV_IN, TYPE_USER,
+             "Ignition terminal switched to RUN mode",
+             SEV_INFO),
+
+            (0.150, "3001", COMP_POWER, TYPE_STATE,
+             "EPS Power inverter circuit calibration synchronized",
+             SEV_INFO),
+
+            (14.205, "2045", COMP_CHASSIS, TYPE_STATE,
+             "Automated Lane-Keep Assist system engaged by driver",
+             SEV_INFO),
+
+            (840.650, "2046", COMP_CHASSIS, TYPE_STATE,
+             "Automated Lane-Keep Assist system disengaged - hands detected on wheel",
+             SEV_INFO),
+            
+            (900.000, "9000", COMP_GATEWAY, TYPE_HEALTH,
+             "Chassis bus component safety heartbeats nominal",
+             SEV_INFO),
+
+            (1800.000, "9000", COMP_GATEWAY, TYPE_HEALTH,
+             "Chassis bus component safety heartbeats nominal",
+             SEV_INFO),
+
+            (2700.000, "9000", COMP_GATEWAY, TYPE_HEALTH,
+             "Chassis bus component safety heartbeats nominal",
+             SEV_INFO),
+        ]
+
+
+        for timestamp, event_id, component, event_type, description, severity in events:
+
+            writer.writerow([
+                f"{timestamp:.6f}",
+                event_id,
+                component,
+                event_type,
+                description,
+                severity,
+                get_dtc(timestamp)
+            ])
+
+
+        # Shutdown events
+        end_time = float(TOTAL_DURATION_SEC)
+
+        shutdown_events = [
+            (
+                end_time - 1.5,
+                "2047",
+                COMP_CHASSIS,
+                TYPE_STATE,
+                "All active driver assistance tracking modules safely disconnected",
+                SEV_INFO
+            ),
+            (
+                end_time - 0.05,
+                "1023",
+                COMP_DRV_IN,
+                TYPE_USER,
+                "Ignition terminal switched to OFF mode",
+                SEV_INFO
+            ),
+            (
+                end_time,
+                "1002",
+                COMP_GATEWAY,
+                TYPE_STATE,
+                "Gateway enters micro-sleep power saving state",
+                SEV_INFO
+            )
+        ]
+
+        for timestamp, event_id, component, event_type, description, severity in shutdown_events:
+
+            writer.writerow([
+                f"{timestamp:.6f}",
+                event_id,
+                component,
+                event_type,
+                description,
+                severity,
+                get_dtc(timestamp)
+            ])
+
+    print(f"✅ Event log saved: {output_path}")
 
 if __name__ == "__main__":
     generate_healthy_event_log()

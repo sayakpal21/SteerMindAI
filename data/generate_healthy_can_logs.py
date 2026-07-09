@@ -4,12 +4,14 @@ import csv
 import random
 import numpy as np
 
+
+
 # ==========================================
 # 🌐 GLOBAL CONFIGURATION CONSTANTS
 # ==========================================
 DEFAULT_OUTPUT_PATH = "data/sample data/sample CAN logs/Sample_Healthy_CAN_logs.csv"
 TOTAL_SECONDS = 3600      # 1 Hour simulation window
-SAMPLE_RATE_HZ = 20       # 20 Hz frame broadcast rate
+SAMPLE_RATE_HZ = 1        # 1 Hz frame broadcast rate
 BUS_CHANNEL = "CAN_FD_1"
 
 # Standard Schema Definition
@@ -21,7 +23,7 @@ MSG_EPS_STATUS = {"id": "0x18F", "name": "EPS_Status_01"}
 MSG_EPS_FEEDBACK = {"id": "0x20C", "name": "EPS_Feedback_02"}
 
 
-def generate_healthy_can_log(output_path=DEFAULT_OUTPUT_PATH):
+def generate_healthy_can_log(output_path=DEFAULT_OUTPUT_PATH, faulty=False, fault_time=None):
     """
     Generates a raw, sequential, completely healthy CAN bus log file 
     to serve as the nominal engineering baseline.
@@ -43,12 +45,31 @@ def generate_healthy_can_log(output_path=DEFAULT_OUTPUT_PATH):
         
         row_count = 0
         for idx, t in enumerate(time_steps):
-            # Formulate baseline healthy metrics with minor white noise
-            current = 5.0 + random.normalvariate(0, 0.15)
-            temp = 42.0 + (t * 0.001) + random.normalvariate(0, 0.02)  # Normal operational warming trend
-            angle = angle_wave[idx] + random.normalvariate(0, 0.2)
-            voltage = 12.2 + random.normalvariate(0, 0.03)
-            
+
+            if not faulty:
+                # Healthy operation
+                current = 5.0 + random.normalvariate(0, 0.15)
+                temp = 42.0 + (t * 0.001) + random.normalvariate(0, 0.02)
+                angle = angle_wave[idx] + random.normalvariate(0, 0.2)
+                voltage = 12.2 + random.normalvariate(0, 0.03)
+
+            elif faulty:
+                if t < fault_time:
+                    current = 5.0 + random.normalvariate(0, 0.15)
+                    temp = 42.0 + (t * 0.001) + random.normalvariate(0, 0.02)
+                    angle = angle_wave[idx] + random.normalvariate(0, 0.2)
+                    voltage = 12.2 + random.normalvariate(0, 0.03)
+                elif t >= fault_time:
+                    # Short-circuit fault
+                    # High current with small fluctuations
+                    current = 28.0 + random.normalvariate(0, 1.5)
+                    # Supply voltage collapses
+                    voltage = 2.0 + random.normalvariate(0, 0.2)
+                    # Rapid temperature rise due to I²R heating
+                    temp = 42.0 + (t * 0.05) + random.normalvariate(0, 0.5)
+                    # Steering actuator unable to follow commanded angle
+                    angle = angle_wave[idx] * 0.15 + random.normalvariate(0, 1.0)
+                
             # 🔌 Frame A (0x18F) - EPS Power Status
             writer.writerow([f"{t:.6f}", MSG_EPS_STATUS["id"], MSG_EPS_STATUS["name"], "Motor_Current", f"{current:.2f}", "Amps", BUS_CHANNEL])
             writer.writerow([f"{t:.6f}", MSG_EPS_STATUS["id"], MSG_EPS_STATUS["name"], "Inverter_Temp", f"{temp:.2f}", "C", BUS_CHANNEL])

@@ -29,7 +29,7 @@ st.markdown("""
 
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from agents.rootcause_agent import run_simple_diagnosis
+from agents.rootcause_agent import run_rootcause_analysis
 from utils.guardrail import DiagnosticIncidentParser
 from utils import *
 
@@ -381,11 +381,10 @@ if trigger_btn:
             incident_parser = DiagnosticIncidentParser(uploaded_can_full_path, uploaded_ecu_full_path, config_full_path)
 
             extracted_dtc_code = incident_parser.get_active_dtc_meaning()
-            print(f"Extracted DTC Code: {extracted_dtc_code}")
+
             # Fire our sequential multi-agent orchestration chain
-            agent_response_dict = run_simple_diagnosis(
+            agent_response_dict = run_rootcause_analysis(
                 fault_code=extracted_dtc_code,
-                metric_telemetry=telemetry_string_payload
             )
             
             st.success("🤖 Framework Inference Cycle Successfully Concluded!")
