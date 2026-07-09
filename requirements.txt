@@ -2,3 +2,4 @@ google
 streamlit 
 plotly
 dotenv
+chromadb
