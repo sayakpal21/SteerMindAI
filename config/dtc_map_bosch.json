@@ -1,0 +1,58 @@
+{
+  "OEM_Metadata": {
+    "Supplier": "Robert Bosch GmbH",
+    "System_Name": "Bosch Servotronic EPS",
+    "Architecture_Version": "v4.2_Proprietary",
+    "Network_Protocol": "CAN_FD"
+  },
+  "DTC_Registry": {
+    "C10A4": {
+      "Component": "Electronic_Power_Steering_ECU",
+      "Subsystem": "Chassis_Actuator_Power_Stage",
+      "Severity_Rating": "CRITICAL",
+      "Error_Details": {
+        "Short_Title": "H-Bridge Mosfet Desaturation",
+        "Long_Description": "Power inverter H-Bridge high-side MOSFET driver detected a transient desaturation condition, indicating potential phase-to-ground isolation breakdown."
+      },
+      "Critical_Thresholds": {
+        "Max_Safe_Current_Amps": 45.0,
+        "Desat_Filter_Time_Ms": 15.0,
+        "Thermal_Limit_Celsius": 105.0
+      },
+      "Failsafe_Strategy": {
+        "Immediate_Action": "DISABLE_ASSIST_IMMEDIATE",
+        "Cluster_Lamp_Triggered": "MIL_RED_STEERING_ICON",
+        "UDS_Service_Byte": "0x19"
+      },
+      "Telemetry_Validation_Signals": [
+        "Motor_Current_Amps",
+        "Inverter_Temp_C",
+        "System_Voltage_V"
+      ]
+    },
+    "C1093": {
+      "Component": "Steering_Rack_Actuator",
+      "Subsystem": "Mechanical_Gear_Assembly",
+      "Severity_Rating": "WARNING",
+      "Error_Details": {
+        "Short_Title": "Mechanical Binding Detected",
+        "Long_Description": "The internal mechanical rack pinion gear requires high rotational torque input without corresponding directional changes, indicating external binding or high structural resistance."
+      },
+      "Critical_Thresholds": {
+        "Max_Safe_Current_Amps": 22.0,
+        "Desat_Filter_Time_Ms": 500.0,
+        "Thermal_Limit_Celsius": 115.0
+      },
+      "Failsafe_Strategy": {
+        "Immediate_Action": "REDUCE_ASSIST_50_PERCENT",
+        "Cluster_Lamp_Triggered": "MIL_YELLOW_STEERING_ICON",
+        "UDS_Service_Byte": "0x19"
+      },
+      "Telemetry_Validation_Signals": [
+        "Motor_Current_Amps",
+        "Inverter_Temp_C",
+        "Steering_Angle_Deg"
+      ]
+    }
+  }
+}

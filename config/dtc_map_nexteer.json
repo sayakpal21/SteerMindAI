@@ -1,0 +1,55 @@
+{
+  "OEM_Metadata": {
+    "Supplier": "Nexteer Automotive",
+    "System_Name": "Nexteer Column-Assist EPS",
+    "Architecture_Version": "NEX_CEPS_v2.0",
+    "Network_Protocol": "Standard_CAN"
+  },
+  "DTC_Registry": {
+    "C1051": {
+      "Component": "Steering_Column_Sensor_Array",
+      "Subsystem": "Driver_Interface_Stream",
+      "Severity_Rating": "CRITICAL",
+      "Error_Details": {
+        "Short_Title": "Dual-Channel Angle Plausibility Failure",
+        "Long_Description": "Discrepancy detected between internal analog tracking channel A and digital matrix channel B, indicating a flatline or corrupt calculation payload."
+      },
+      "Critical_Thresholds": {
+        "Max_Channel_Delta_Deg": 2.5,
+        "Validation_Window_Ms": 30.0,
+        "Flatline_Tolerance_Sec": 2.0
+      },
+      "Failsafe_Strategy": {
+        "Immediate_Action": "REVERT_TO_DEFAULT_MAP_OR_SHUTDOWN",
+        "Cluster_Lamp_Triggered": "MIL_RED_STEERING_ICON",
+        "UDS_Service_Byte": "0x03"
+      },
+      "Telemetry_Validation_Signals": [
+        "Steering_Angle_Deg",
+        "System_Voltage_V"
+      ]
+    },
+    "C1221": {
+      "Component": "EPS_Logic_Power_Rail",
+      "Subsystem": "Internal_ECU_Power",
+      "Severity_Rating": "CRITICAL",
+      "Error_Details": {
+        "Short_Title": "Logic Gate Undervoltage Sag",
+        "Long_Description": "Primary 12V logic power rail feeding the central microcontroller dropped below the minimum brownout threshold during load activation."
+      },
+      "Critical_Thresholds": {
+        "Min_Voltage_Volts": 9.0,
+        "Sag_Duration_Max_Ms": 5.0
+      },
+      "Failsafe_Strategy": {
+        "Immediate_Action": "ENTER_SAFE_STATE_RESET",
+        "Cluster_Lamp_Triggered": "MIL_RED_STEERING_ICON",
+        "UDS_Service_Byte": "0x11"
+      },
+      "Telemetry_Validation_Signals": [
+        "System_Voltage_V",
+        "Motor_Current_Amps"
+      ]
+    }
+  }
+}
