@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from parser import CANLogParser
+from utils.parser import CANLogParser
 
 def detect_short_circuit_fault(parsed_matrix):
     """

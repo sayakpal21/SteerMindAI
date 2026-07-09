@@ -1,7 +1,7 @@
 # agents/signal_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
-from limit import *
+from agents.limit import *
 
 def run_signal_analysis(metric_telemetry: str) -> str:
     """Reads signal_prompt.txt and isolates sensor boundaries.

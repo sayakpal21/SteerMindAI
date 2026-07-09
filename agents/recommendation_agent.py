@@ -1,7 +1,7 @@
 # agents/recommendation_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
-from limit import *
+from agents.limit import *
 
 def run_maintenance_advisory(root_cause_verdict: str) -> str:
     """Reads recommend_prompt.txt to issue high-precision field repair actions.

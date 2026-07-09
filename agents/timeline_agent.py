@@ -1,7 +1,7 @@
 # agents/timeline_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
-from limit import *
+from agents.limit import *
 
 def run_timeline_sequencer(fault_code: str, signal_observations: str) -> str:
     """Reads timeline_prompt.txt to establish chronological failure stages.

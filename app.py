@@ -30,8 +30,13 @@ st.markdown("""
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agents.rootcause_agent import run_rootcause_analysis
+from agents.signal_agent import run_signal_analysis
+from agents.recommendation_agent import run_maintenance_advisory
+from agents.learning_agent import run_knowledge_caching
+from agents.limit import *
 from utils.guardrail import DiagnosticIncidentParser
-from utils import *
+from utils.signal_analysis import detect_short_circuit_fault
+from utils.parser import CANLogParser
 
 # ==========================================
 # 🎛️ SIDEBAR ENGINE & SCENARIO CONTROLLER
@@ -382,10 +387,33 @@ if trigger_btn:
 
             extracted_dtc_code = incident_parser.get_active_dtc_meaning()
 
+            parser = CANLogParser( target_signals=[
+                "Motor_Current",
+                "Steering_Angle",
+                "Inverter_Temp",
+                "System_Voltage"
+            ])
+            parsed_matrix, columns = parser.parse_csv(uploaded_can_full_path)
+            diagnosis = detect_short_circuit_fault(parsed_matrix)
+            print("Diagnosis Result: ", diagnosis)
+
             # Fire our sequential multi-agent orchestration chain
-            agent_response_dict = run_rootcause_analysis(
+            agent_response_dict = {}
+            agent_response_dict["root_cause"] = run_rootcause_analysis(
                 fault_code=extracted_dtc_code,
             )
+            agent_response_dict["signal"] = run_signal_analysis(
+                metric_telemetry=extracted_dtc_code,
+            )
+
+            agent_response_dict["recommendation"] = run_maintenance_advisory(
+                root_cause_verdict=agent_response_dict["root_cause"],
+            )
+
+            agent_response_dict["action"] = run_knowledge_caching(
+                pipeline_summary = agent_response_dict["signal"] + agent_response_dict["recommendation"]
+            )
+
             
             st.success("🤖 Framework Inference Cycle Successfully Concluded!")
             st.markdown("---")
@@ -401,8 +429,8 @@ if trigger_btn:
                     
                 with st.container():
                     st.markdown("<div class='report-card' style='border-left-color: #29B5E8;'>", unsafe_allow_html=True)
-                    st.markdown("<p class='agent-title'>⏱️ Agent 2: Chrono Sequencer</p>", unsafe_allow_html=True)
-                    st.write(agent_response_dict["timeline"])
+                    st.markdown("<p class='agent-title'>⏱️ Agent 2: Action</p>", unsafe_allow_html=True)
+                    st.write(agent_response_dict["action"])
                     st.markdown("</div>", unsafe_allow_html=True)
 
             with col2:
@@ -410,13 +438,13 @@ if trigger_btn:
                 with st.container():
                     st.markdown("<div class='report-card' style='border-left-color: #FF4B4B;'>", unsafe_allow_html=True)
                     st.markdown("<p class='agent-title'>🧠 Agent 3: Root Cause Expert Report</p>", unsafe_allow_html=True)
-                    st.info(agent_response_dict["root_cause"])
+                    st.info(agent_response_dict["recommendation"])
                     st.markdown("</div>", unsafe_allow_html=True)
                     
                 with st.container():
                     st.markdown("<div class='report-card' style='border-left-color: #28A745;'>", unsafe_allow_html=True)
                     st.markdown("<p class='agent-title'>🔧 Agent 4: Maintenance Advisory System</p>", unsafe_allow_html=True)
-                    st.write(agent_response_dict["action"])
+                    st.write(agent_response_dict["recommendation"])
                     st.markdown("</div>", unsafe_allow_html=True)
 
             with st.expander("🛠️ Show Hardware-Software Abstract Layer Logs (Infrastructure Immunity Validation)"):

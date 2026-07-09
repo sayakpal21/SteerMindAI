@@ -1,7 +1,7 @@
 ## agents/rootcause_agent.py
 import json
 from utils.llm_gateway import MultiLLMManager
-from limit import *
+from agents.limit import *
 
 def run_rootcause_analysis(
     fault_code: str,  

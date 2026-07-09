@@ -1,7 +1,7 @@
 # agents/learning_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
-from limit import *
+from agents.limit import *
 
 
 def run_knowledge_caching(pipeline_summary: str) -> str:
