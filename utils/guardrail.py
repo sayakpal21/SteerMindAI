@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import parser
+from utils import parser
 
 class DiagnosticIncidentParser:
     """

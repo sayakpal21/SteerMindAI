@@ -30,6 +30,8 @@ st.markdown("""
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agents.rootcause_agent import run_simple_diagnosis
+from utils.guardrail import DiagnosticIncidentParser
+from utils import *
 
 # ==========================================
 # 🎛️ SIDEBAR ENGINE & SCENARIO CONTROLLER
@@ -220,7 +222,7 @@ if all_files_present:
         parse_error_triggered = True
         all_files_present = False
 
-        
+
 # Fallback block if files are missing, non-compliant, or broken
 if telemetry_df is None:
     if "C1044" in selected_scenario: file_target = "data/can_overcurrent_fault.csv"
@@ -372,7 +374,14 @@ if trigger_btn:
             - Max Inverter Thermal Reading: {max_temp:.2f} °C
             - Raw Sensor Record Dimensions: {len(telemetry_df)} frames
             """
-            
+
+            config_full_path = os.path.abspath(os.path.join("config", uploaded_dtc_file.name))
+            uploaded_can_full_path = os.path.abspath(os.path.join("data/sample data/sample CAN logs", uploaded_can.name))
+            uploaded_ecu_full_path = os.path.abspath(os.path.join("data/sample data/sample Events logs", uploaded_ecu.name))
+            incident_parser = DiagnosticIncidentParser(uploaded_can_full_path, uploaded_ecu_full_path, config_full_path)
+
+            extracted_dtc_code = incident_parser.get_active_dtc_meaning()
+            print(f"Extracted DTC Code: {extracted_dtc_code}")
             # Fire our sequential multi-agent orchestration chain
             agent_response_dict = run_simple_diagnosis(
                 fault_code=extracted_dtc_code,
