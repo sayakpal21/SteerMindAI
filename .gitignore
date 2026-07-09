@@ -24,8 +24,8 @@ pip-delete-this-directory.txt
 # ==========================================
 # This protects your token budget by ensuring massive 
 # data dumps aren't tracked or bloated on the remote server.
-data/can_*.csv
-data/dtc_*.csv
+#data/can_*.csv
+#data/dtc_*.csv
 uploads/*
 !uploads/.gitkeep
 
