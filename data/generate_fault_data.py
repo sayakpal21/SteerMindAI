@@ -10,4 +10,4 @@ DEFAULT_OUTPUT_PATH_OF_FAULTY_EVENTS = "data/sample data/sample Events logs/Samp
 
 if __name__ == "__main__":
     generate_healthy_can_log(output_path=DEFAULT_OUTPUT_PATH_OF_FAULTY_CAN, faulty=True, fault_time=fault_time)
-    generate_healthy_event_log(output_path=DEFAULT_OUTPUT_PATH_OF_FAULTY_EVENTS, faulty_time=fault_time, active_dtc="C10A4")
+    generate_healthy_event_log(output_path=DEFAULT_OUTPUT_PATH_OF_FAULTY_EVENTS, faulty_time=fault_time, active_dtc="C1093")
