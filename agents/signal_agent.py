@@ -1,6 +1,7 @@
 # agents/signal_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
+from limit import *
 
 def run_signal_analysis(metric_telemetry: str) -> str:
     """Reads signal_prompt.txt and isolates sensor boundaries.
@@ -23,7 +24,7 @@ def run_signal_analysis(metric_telemetry: str) -> str:
     raw_bounds = ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=initial_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
     # Step 2: Chain the output into a second user prompt for definitive anomaly synthesis
@@ -37,7 +38,7 @@ def run_signal_analysis(metric_telemetry: str) -> str:
     return ai_hub.invoke_agent(
         system_instruction="Role: Senior CAN Validation & Signal Processing Engineer.",
         user_payload=chained_user_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
 if __name__ == "__main__":

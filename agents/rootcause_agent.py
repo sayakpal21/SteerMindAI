@@ -1,7 +1,7 @@
 ## agents/rootcause_agent.py
 import json
 from utils.llm_gateway import MultiLLMManager
-
+from limit import *
 
 def run_rootcause_analysis(
     fault_code: str,  
@@ -25,7 +25,7 @@ def run_rootcause_analysis(
     response = ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=user_payload,
-        max_tokens=150,)
+        max_tokens=MAX_TOKENS,)
 
     print("System Instruction: ", system_instruction)
     print("fault_code: ", user_payload)

@@ -1,6 +1,7 @@
 # agents/recommendation_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
+from limit import *
 
 def run_maintenance_advisory(root_cause_verdict: str) -> str:
     """Reads recommend_prompt.txt to issue high-precision field repair actions.
@@ -23,7 +24,7 @@ def run_maintenance_advisory(root_cause_verdict: str) -> str:
     raw_recommendations = ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=initial_payload,
-        max_tokens=500
+        max_tokens=MAX_TOKENS
     )
 
     # Step 2: Chain the output into a second user prompt for final refinement
@@ -37,7 +38,7 @@ def run_maintenance_advisory(root_cause_verdict: str) -> str:
     return ai_hub.invoke_agent(
         system_instruction="Role: Senior MLOps & Quality Assurance Systems Inspector.",
         user_payload=chained_user_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
 if __name__ == "__main__":

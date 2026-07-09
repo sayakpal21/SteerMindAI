@@ -1,6 +1,7 @@
 # agents/timeline_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
+from limit import *
 
 def run_timeline_sequencer(fault_code: str, signal_observations: str) -> str:
     """Reads timeline_prompt.txt to establish chronological failure stages.
@@ -23,7 +24,7 @@ def run_timeline_sequencer(fault_code: str, signal_observations: str) -> str:
     raw_timeline = ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=initial_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
     # Step 2: Chain the output into a second user prompt for definitive lifecycle mapping
@@ -37,7 +38,7 @@ def run_timeline_sequencer(fault_code: str, signal_observations: str) -> str:
     return ai_hub.invoke_agent(
         system_instruction="Role: Forensic Failure Sequencer & RCA Specialist.",
         user_payload=chained_user_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
 if __name__ == "__main__":

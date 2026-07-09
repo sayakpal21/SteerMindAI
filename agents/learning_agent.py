@@ -1,6 +1,8 @@
 # agents/learning_agent.py
 import os
 from utils.llm_gateway import MultiLLMManager
+from limit import *
+
 
 def run_knowledge_caching(pipeline_summary: str) -> str:
     """Reads learning_prompt.txt to extract training features for MLOps staging workflows.
@@ -23,7 +25,7 @@ def run_knowledge_caching(pipeline_summary: str) -> str:
     raw_features = ai_hub.invoke_agent(
         system_instruction=system_instruction,
         user_payload=initial_payload,
-        max_tokens=500
+        max_tokens=MAX_TOKENS
     )
 
     # Step 2: Chain the output into a second user prompt for definitive weight staging
@@ -37,7 +39,7 @@ def run_knowledge_caching(pipeline_summary: str) -> str:
     return ai_hub.invoke_agent(
         system_instruction="Role: Principal MLOps Platform Optimization Engineer.",
         user_payload=chained_user_payload,
-        max_tokens=1000
+        max_tokens=MAX_TOKENS
     )
 
 if __name__ == "__main__":
