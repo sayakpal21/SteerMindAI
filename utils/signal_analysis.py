@@ -72,7 +72,10 @@ def detect_short_circuit_fault(parsed_matrix):
 
     angle_fault = angle_rate > 0.5
 
+    fault_condition = np.any(current_fault) & np.any(temperature_fault)
 
+    if not fault_condition:
+        return "System operating within normal parameters."
 
     # --------------------------------------------------
     # Short circuit signature
@@ -85,14 +88,11 @@ def detect_short_circuit_fault(parsed_matrix):
     #
 
     fault_condition = (
-        current_fault &
-        (
-            temperature_fault |
-            angle_fault
-        )
+        current_fault & temperature_fault
     )
 
-
+    if fault_condition is False:
+        return "No short circuit fault detected"
 
     # --------------------------------------------------
     # Persistence check
@@ -118,8 +118,7 @@ def detect_short_circuit_fault(parsed_matrix):
 
 
 
-    if fault_index is None:
-        return "No short circuit fault detected"
+
 
 
 
@@ -204,7 +203,8 @@ EPS motor winding short circuit or inverter power stage short circuit.
 
 if __name__ == "__main__":
     # Example usage
-    can_log_path = "data/sample data/sample CAN logs/Sample_Faulty_CAN_logs.csv"
+    #can_log_path = "data/sample data/sample CAN logs/Sample_Faulty_CAN_logs.csv"
+    can_log_path = "data/sample data/sample CAN logs/Sample_Healthy_CAN_logs.csv"
 
     # 🏎️ Parse CAN Telemetry Logs
     print("Parsing CAN Logs...")

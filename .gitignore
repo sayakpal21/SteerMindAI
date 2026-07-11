@@ -34,9 +34,9 @@ uploads/*
 # ==========================================
 # ChromaDB stores local SQLite binaries here. Keep them 
 # local so different machines don't corrupt the database indices.
-memory/chroma_db/
-*.db
-*.sqlite3
+#memory/chroma_db/
+#*.db
+#*.sqlite3
 
 # ==========================================
 # 🖥️ Editor & IDE Metadata (VS Code / Mac)

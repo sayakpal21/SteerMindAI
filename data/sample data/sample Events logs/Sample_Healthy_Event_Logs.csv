@@ -5,7 +5,7 @@ Timestamp,Event_Id,Component,Event_Type,Description,Severity,Active_DTC
 14.205000,2045,Chassis_Safety,STATE_TRANSITION,Automated Lane-Keep Assist system engaged by driver,INFO,NONE
 840.650000,2046,Chassis_Safety,STATE_TRANSITION,Automated Lane-Keep Assist system disengaged - hands detected on wheel,INFO,NONE
 900.000000,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
-1800.000000,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,C1093
+1800.000000,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
 2700.000000,9000,ECU_Gateway,HEARTBEAT,Chassis bus component safety heartbeats nominal,INFO,NONE
 3598.500000,2047,Chassis_Safety,STATE_TRANSITION,All active driver assistance tracking modules safely disconnected,INFO,NONE
 3599.950000,1023,Driver_Inputs,USER_ACTION,Ignition terminal switched to OFF mode,INFO,NONE

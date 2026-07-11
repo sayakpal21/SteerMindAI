@@ -3,3 +3,7 @@ streamlit
 plotly
 dotenv
 chromadb
+huggingface_hub
+openai
+Groq
+distance

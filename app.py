@@ -8,7 +8,16 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from dotenv import load_dotenv
 
+agent_response_dict = {}
+
+if "agent_response_dict" not in st.session_state:
+    st.session_state.agent_response_dict = None
+
+if "analysis_complete" not in st.session_state:
+    st.session_state.analysis_complete = False
+
 load_dotenv()
+
 
 # 🎨 EXECUTIVE PROTO-THEME CONFIGURATION
 st.set_page_config(
@@ -32,11 +41,92 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agents.rootcause_agent import run_rootcause_analysis
 from agents.signal_agent import run_signal_analysis
 from agents.recommendation_agent import run_maintenance_advisory
-from agents.learning_agent import run_knowledge_caching
 from agents.limit import *
 from utils.guardrail import DiagnosticIncidentParser
 from utils.signal_analysis import detect_short_circuit_fault
 from utils.parser import CANLogParser
+from memory.seed_memory import *
+
+import time
+
+# Example fallback implementations
+
+def run_rootcause_analysis_fallback(fault_code):
+    # Minimal deterministic mapping if AI agent fails
+    return f"Fallback verdict: generic root cause for {fault_code}"
+
+def run_signal_analysis_fallback(metric_telemetry):
+    # Basic statistical check instead of full AI analysis
+    return {
+        "flatline_check": all(abs(x) < 0.01 for x in metric_telemetry),
+        "max_value": max(metric_telemetry) if metric_telemetry else None
+    }
+
+def run_maintenance_advisory_fallback(root_cause_verdict):
+    verdict = str(root_cause_verdict).lower()
+
+    if "eps" in verdict:
+        return [
+            "Inspect EPS wiring harness.",
+            "Verify steering torque sensor.",
+            "Check EPS ECU power supply."
+        ]
+
+    elif "brake" in verdict:
+        return [
+            "Inspect brake fluid level.",
+            "Verify brake pressure sensor.",
+            "Check ABS module."
+        ]
+
+    return [
+        "Inspect wiring harness.",
+        "Check connectors.",
+        "Clear DTC and retest."
+    ]
+
+
+def safe_call(func, *args, max_retries=3, fallback=None, **kwargs):
+    delay = 1
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(f"{func.__name__} failed (attempt {attempt+1}): {e}")
+            time.sleep(delay)
+            delay *= 2  # exponential backoff
+    if fallback:
+        try:
+            print(f"Switching to fallback for {func.__name__}")
+            return fallback(*args, **kwargs)
+        except Exception as e:
+            print(f"Fallback for {func.__name__} also failed: {e}")
+    return None
+
+
+def run_pipeline(fault_code, telemetry_metrics):
+    agent_response_dict = {}
+
+    agent_response_dict["root_cause"] = safe_call(
+        run_rootcause_analysis,
+        fault_code=fault_code,
+        fallback=run_rootcause_analysis_fallback
+    )
+
+    agent_response_dict["signal"] = safe_call(
+        run_signal_analysis,
+        metric_telemetry=telemetry_metrics,
+        fallback=run_signal_analysis_fallback
+    )
+
+    agent_response_dict["recommendation"] = safe_call(
+        run_maintenance_advisory,
+        root_cause_verdict=agent_response_dict["root_cause"],
+        fallback=run_maintenance_advisory_fallback
+    )
+
+    return agent_response_dict
+
 
 # ==========================================
 # 🎛️ SIDEBAR ENGINE & SCENARIO CONTROLLER
@@ -104,12 +194,12 @@ elif "C1093" in selected_scenario: extracted_dtc_code = "C1093"
 elif "C1221" in selected_scenario: extracted_dtc_code = "C1221"
 else: extracted_dtc_code = "HEALTHY_NOMINAL"
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("🔌 Network Architecture Gateway")
-has_gemini = bool(os.getenv("GEMINI_API_KEY"))
-has_openai = bool(os.getenv("OPENAI_API_KEY"))
-st.sidebar.markdown(f"**Gemini Node:** {'🟢 Online' if has_gemini else '🔴 Offline'}")
-st.sidebar.markdown(f"**OpenAI Node:** {'🟢 Online' if has_openai else '🔴 Offline'}")
+#st.sidebar.markdown("---")
+#st.sidebar.subheader("🔌 Network Architecture Gateway")
+#has_gemini = bool(os.getenv("GEMINI_API_KEY"))
+#has_openai = bool(os.getenv("OPENAI_API_KEY"))
+#st.sidebar.markdown(f"**Gemini Node:** {'🟢 Online' if has_gemini else '🔴 Offline'}")
+#st.sidebar.markdown(f"**OpenAI Node:** {'🟢 Online' if has_openai else '🔴 Offline'}")
 
 # ==========================================
 # 📊 TIME-SERIES DATA LAYER & PARSING PROTECTION
@@ -257,13 +347,13 @@ if parse_error_triggered:
     st.error("❌ Data Ingestion Exception! Ensure your files match expected structural guidelines. Running simulation targets safely.")
 
 # Row 1: KPI Grid Panel
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-kpi1.metric(label="📊 Bus Infrastructure", value="CAN-FD Channel A")
-kpi2.metric(label="🎯 Active Fault Vector", value=extracted_dtc_code)
+#kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+#kpi1.metric(label="📊 Bus Infrastructure", value="CAN-FD Channel A")
+#kpi2.metric(label="🎯 Active Fault Vector", value=extracted_dtc_code)
 
-active_backend = "GPT-4o Mini (OpenAI)" if (has_openai and not has_gemini) else "Gemini 2.5 Flash (Google)"
-kpi3.metric(label="🔌 Active Model Gateway", value=active_backend)
-kpi4.metric(label="⏱️ Frame Ingestion Rate", value=f"{len(telemetry_df)} Hz")
+#active_backend = "GPT-4o Mini (OpenAI)" if (has_openai and not has_gemini) else "Gemini 2.5 Flash (Google)"
+#kpi3.metric(label="🔌 Active Model Gateway", value=active_backend)
+#kpi4.metric(label="⏱️ Frame Ingestion Rate", value=f"{len(telemetry_df)} Hz")
 
 
 # Row 2: Graphing telemetry profiles (3-Row Vertically Stacked Subplot Layout)
@@ -351,6 +441,7 @@ with btn_col1:
 with btn_col2:
     save_btn = st.button("📦 Save Dataset for Model Training", type="secondary")
 
+
 # Data Staging Logger Script Logic
 if save_btn:
     if not all_files_present or parse_error_triggered:
@@ -395,63 +486,126 @@ if trigger_btn:
             ])
             parsed_matrix, columns = parser.parse_csv(uploaded_can_full_path)
             diagnosis = detect_short_circuit_fault(parsed_matrix)
+            print("extracted_dtc_code: ", extracted_dtc_code)
             print("Diagnosis Result: ", diagnosis)
 
-            # Fire our sequential multi-agent orchestration chain
-            agent_response_dict = {}
-            agent_response_dict["root_cause"] = run_rootcause_analysis(
-                fault_code=extracted_dtc_code,
-            )
-            agent_response_dict["signal"] = run_signal_analysis(
-                metric_telemetry=extracted_dtc_code,
+            #agent_response_dict = run_pipeline(extracted_dtc_code, diagnosis)
+            st.session_state.agent_response_dict = run_pipeline(
+                extracted_dtc_code,
+                diagnosis
             )
 
-            agent_response_dict["recommendation"] = run_maintenance_advisory(
-                root_cause_verdict=agent_response_dict["root_cause"],
-            )
-
-            agent_response_dict["action"] = run_knowledge_caching(
-                pipeline_summary = agent_response_dict["signal"] + agent_response_dict["recommendation"]
-            )
+            st.session_state.analysis_complete = True
+            print("Agent Response Dictionary: ", agent_response_dict)
 
             
             st.success("🤖 Framework Inference Cycle Successfully Concluded!")
             st.markdown("---")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("### 🔍 Pipeline Extraction Phase")
-                with st.container():
-                    st.markdown("<div class='report-card' style='border-left-color: #0068C9;'>", unsafe_allow_html=True)
-                    st.markdown("<p class='agent-title'>🕵️‍♂️ Agent 1: Signal Interpreter</p>", unsafe_allow_html=True)
-                    st.write(agent_response_dict["signal"])
-                    st.markdown("</div>", unsafe_allow_html=True)
-                    
-                with st.container():
-                    st.markdown("<div class='report-card' style='border-left-color: #29B5E8;'>", unsafe_allow_html=True)
-                    st.markdown("<p class='agent-title'>⏱️ Agent 2: Action</p>", unsafe_allow_html=True)
-                    st.write(agent_response_dict["action"])
-                    st.markdown("</div>", unsafe_allow_html=True)
 
-            with col2:
-                st.markdown("### 🎯 Synthesis & Engineering Actions")
-                with st.container():
-                    st.markdown("<div class='report-card' style='border-left-color: #FF4B4B;'>", unsafe_allow_html=True)
-                    st.markdown("<p class='agent-title'>🧠 Agent 3: Root Cause Expert Report</p>", unsafe_allow_html=True)
-                    st.info(agent_response_dict["recommendation"])
-                    st.markdown("</div>", unsafe_allow_html=True)
-                    
-                with st.container():
-                    st.markdown("<div class='report-card' style='border-left-color: #28A745;'>", unsafe_allow_html=True)
-                    st.markdown("<p class='agent-title'>🔧 Agent 4: Maintenance Advisory System</p>", unsafe_allow_html=True)
-                    st.write(agent_response_dict["recommendation"])
-                    st.markdown("</div>", unsafe_allow_html=True)
+# ============================================================================
+# Multi-Agent Framework Results
+# ============================================================================
 
-            with st.expander("🛠️ Show Hardware-Software Abstract Layer Logs (Infrastructure Immunity Validation)"):
-                st.code(f"""
-                [SYS-INIT] Instantiating MultiLLMManager cross-compatibility router object...
-                [GATEWAY] Validation success: Detected live active environment variable.
-                [ROUTING] Dynamically deploying to target hardware node: '{active_backend}'
-                [CONTEXT] Sent text context block footprint: ~140 Tokens.
-                [INFERENCE] Stream parsing return code: 200 OK.
-                """, language="bash")
+if st.session_state.analysis_complete:
+
+    agent_response_dict = st.session_state.agent_response_dict
+
+    st.markdown("---")
+    st.header("🤖 Multi-Agent Framework Results")
+    st.success("Framework Inference Cycle Successfully Concluded!")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("### 🔍 Signal Phase")
+        with st.container():
+            st.markdown(
+                "<div class='report-card' style='border-left-color:#0068C9;'>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "<p class='agent-title'>🕵️‍♂️ Agent: Signal Interpreter</p>",
+                unsafe_allow_html=True
+            )
+            st.write(agent_response_dict["signal"])
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("### 🧠 Root Cause Phase")
+        with st.container():
+            st.markdown(
+                "<div class='report-card' style='border-left-color:#FF4B4B;'>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "<p class='agent-title'>📊 Agent: Root Cause Expert</p>",
+                unsafe_allow_html=True
+            )
+            st.info(agent_response_dict["root_cause"])
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("### 🎯 Recommendation Phase")
+        with st.container():
+            st.markdown(
+                "<div class='report-card' style='border-left-color:#28A745;'>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "<p class='agent-title'>🔧 Agent: Advisory System</p>",
+                unsafe_allow_html=True
+            )
+            st.write(agent_response_dict["recommendation"])
+            st.markdown("</div>", unsafe_allow_html=True)
+
+# --- RETRIEVE BUTTON ---
+btn_retrieve = st.button("Retrieve Top Matches", use_container_width=True)
+if btn_retrieve:
+    with st.spinner("Querying ChromaDB for closest matches..."):
+        matches = retrieve_top_matches("engineering_memory", agent_response_dict, threshold=0.0)
+
+        if matches:
+            st.success("✅ Top matches retrieved successfully!")
+
+            # Show plain string output with % match
+            st.write(f"**Root cause:** {matches['root_cause']['document']}")
+            #st.write(f"➡️ % Match: {matches['root_cause']['%match']}%")
+
+            #st.write(f"**Action:** {matches['root_cause']['document']}")
+            #st.write(f"➡️ % Match: {matches['action']['%match']}%")
+
+            # Optional: nicer UI with metrics
+            st.metric(label="Root cause % Match", value=f"{matches['root_cause']['%match']}%")
+            #st.metric(label="Action % Match", value=f"{matches['root_cause']['%match']}%")
+
+        else:
+            st.error("❌ No matches found in ChromaDB.")
+
+
+# Streamlit button
+btn_store = st.button("Store current failure with solution for future", width="stretch")  
+if btn_store:
+    # Store dict content in ChromaDB
+    # Example dictionary
+    # Store dict content in ChromaDB
+    store_dict_in_chromadb("engineering_memory", agent_response_dict)
+
+    # ✅ Show feedback in the Streamlit app
+    st.success("✅ Dictionary content stored successfully in 'engineering_memory'!")
+
+
+# Streamlit button create ChromaDB
+if st.button("Create ChromaDB Collection"):
+    collection = create_chromadb_collection("engineering_memory")
+    st.success(f"Collection '{collection.name}' created or retrieved successfully!")
+
+
+# --- DATABASE CONTROL OPERATION: WIPE ALL DATA ---
+btn_clear = st.button("Clear Memory", width="stretch")  # replaces use_container_width=True
+if btn_clear:
+    with st.spinner("Purging database directories and wiping collection datasets..."):
+        if clear_vector_db():
+            st.success("🗑️ ChromaDB vector collections purged and reset successfully!")
+        else:
+            st.error("❌ Critical System Alert: Failed to execute clear_vector_db database transaction.")
+
